@@ -98,7 +98,7 @@ const SorrisinhoFelizApp = () => {
   ];
 
   useEffect(() => {
-  let interval: NodeJS.Timeout; // <--- Correção aqui
+  let interval: number;
   if (isPlaying && brushingTimer > 0) {
       interval = setInterval(() => {
         setBrushingTimer(prev => prev - 1);
@@ -123,7 +123,7 @@ const toggleChecklistItem = (item: ChecklistItem) => {
     }
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -205,8 +205,11 @@ const toggleChecklistItem = (item: ChecklistItem) => {
     </div>
   );
 
-  const renderSymptomScreen = (symptomKey) => {
-    const symptom = symptoms[symptomKey];
+  // Defina o tipo com base nas chaves do objeto symptoms
+type SymptomKey = keyof typeof symptoms;
+
+const renderSymptomScreen = (symptomKey: SymptomKey) => {
+  const symptom = symptoms[symptomKey];
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100 p-4">
         <div className="max-w-md mx-auto">
@@ -539,7 +542,23 @@ const toggleChecklistItem = (item: ChecklistItem) => {
   const renderChecklistScreen = () => {
     const completedTasks = Object.values(checklist).filter(Boolean).length;
     const isComplete = completedTasks === 5;
+// ▼▼▼ ADICIONE ESTE BLOCO DE CÓDIGO NOVO AQUI ▼▼▼
+// 1. Definimos a "etiqueta" para cada tarefa
+interface ChecklistTask {
+  key: ChecklistItem; // Usando o tipo que já tínhamos
+  label: string;
+  emoji: string;
+}
 
+// 2. Criamos a nossa lista "etiquetada" de tarefas
+const tasks: ChecklistTask[] = [
+  { key: 'morning', label: 'Escovei de manhã', emoji: '🌅' },
+  { key: 'lunch', label: 'Escovei depois do almoço', emoji: '🍽️' },
+  { key: 'night', label: 'Escovei antes de dormir', emoji: '🌙' },
+  { key: 'floss', label: 'Usei fio dental', emoji: '🧵' },
+  { key: 'tongue', label: 'Escovei a língua', emoji: '👅' }
+];
+// ▲▲▲ FIM DO BLOCO NOVO ▲▲▲
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4">
         <div className="max-w-md mx-auto">
@@ -569,34 +588,28 @@ const toggleChecklistItem = (item: ChecklistItem) => {
             )}
 
             <div className="space-y-4 mb-6">
-              {[
-                { key: 'morning', label: 'Escovei de manhã', emoji: '🌅' },
-                { key: 'lunch', label: 'Escovei depois do almoço', emoji: '🍽️' },
-                { key: 'night', label: 'Escovei antes de dormir', emoji: '🌙' },
-                { key: 'floss', label: 'Usei fio dental', emoji: '🧵' },
-                { key: 'tongue', label: 'Escovei a língua', emoji: '👅' }
-              ].map((task) => (
-                <button
-                  key={task.key}
-                  onClick={() => toggleChecklistItem(task.key)}
-                  className={`w-full p-4 rounded-2xl border-2 transition-all ${
-                    checklist[task.key]
-                      ? 'bg-green-100 border-green-400 shadow-lg'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-center space-x-4">
-                    <span className="text-3xl">{task.emoji}</span>
-                    <span className="flex-1 font-bold text-gray-700 text-left">{task.label}</span>
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                      checklist[task.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'
-                    }`}>
-                      {checklist[task.key] && <Check className="text-white" size={20} />}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+  {tasks.map((task) => ( // <-- A única mudança real é aqui!
+    <button
+      key={task.key}
+      onClick={() => toggleChecklistItem(task.key)}
+      className={`w-full p-4 rounded-2xl border-2 transition-all ${
+        checklist[task.key]
+          ? 'bg-green-100 border-green-400 shadow-lg'
+          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+      }`}
+    >
+      <div className="flex items-center space-x-4">
+        <span className="text-3xl">{task.emoji}</span>
+        <span className="flex-1 font-bold text-gray-700 text-left">{task.label}</span>
+        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+          checklist[task.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'
+        }`}>
+          {checklist[task.key] && <Check className="text-white" size={20} />}
+        </div>
+      </div>
+    </button>
+  ))}
+</div>
 
             <div className="bg-blue-100 p-4 rounded-2xl text-center">
               <div className="text-2xl mb-2">🏅</div>
