@@ -780,10 +780,11 @@ const tasks: ChecklistTask[] = [
 
   // Screen routing
   if (currentScreen === 'home') return renderHomeScreen();
-  if (currentScreen.startsWith('symptom-')) {
-    const symptomKey = currentScreen.replace('symptom-', '');
-    return renderSymptomScreen(symptomKey);
-  }
+if (currentScreen.startsWith('symptom-')) {
+  // Usamos "as SymptomKey" para garantir o tipo correto
+  const symptomKey = currentScreen.replace('symptom-', '') as SymptomKey;
+  return renderSymptomScreen(symptomKey);
+}
   if (currentScreen === 'brushing-gengivite') return renderGengiviteBrushingScreen();
   if (currentScreen === 'brushing-halitose') return renderHalitoseBrushingScreen();
   if (currentScreen === 'brushing-carie') return renderCarieBrushingScreen();
