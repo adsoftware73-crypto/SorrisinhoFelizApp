@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Star, ArrowLeft, Play, Pause, Check, Award, Users, Book } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Play, Pause, Check, Award, Users, Book } from 'lucide-react';
 
 const SorrisinhoFelizApp = () => {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -98,8 +98,8 @@ const SorrisinhoFelizApp = () => {
   ];
 
   useEffect(() => {
-    let interval;
-    if (isPlaying && brushingTimer > 0) {
+  let interval: NodeJS.Timeout; // <--- Correção aqui
+  if (isPlaying && brushingTimer > 0) {
       interval = setInterval(() => {
         setBrushingTimer(prev => prev - 1);
       }, 1000);
@@ -110,9 +110,12 @@ const SorrisinhoFelizApp = () => {
     return () => clearInterval(interval);
   }, [isPlaying, brushingTimer]);
 
-  const toggleChecklistItem = (item) => {
-    const newChecklist = { ...checklist, [item]: !checklist[item] };
-    setChecklist(newChecklist);
+// Defina o tipo com base nas chaves do seu estado do checklist
+type ChecklistItem = keyof typeof checklist;
+
+const toggleChecklistItem = (item: ChecklistItem) => {
+  const newChecklist = { ...checklist, [item]: !checklist[item] };
+  setChecklist(newChecklist);
     
     const completed = Object.values(newChecklist).filter(Boolean).length;
     if (completed === 5 && Object.values(checklist).filter(Boolean).length < 5) {
