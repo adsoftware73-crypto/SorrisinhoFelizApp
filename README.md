@@ -1,6 +1,6 @@
 # ✨ Sorrisinho Feliz ✨
 
-![App Screenshot](URL_DA_SUA_IMAGEM_AQUI)
+![App Screenshot](tela.png)
 *Coloque aqui um print da tela principal do seu aplicativo.*
 
 ## 📖 Sobre o Projeto
