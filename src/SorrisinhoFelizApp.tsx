@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Pause, Check, Award, Book, Info, Github, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Check, Award, Book, Info, Github, HelpCircle, Trophy, Trash2 } from 'lucide-react';
 import { mascotPhrases, symptoms, stories, checklistTasks, authors, orientadores, parentsInfo } from './data';
 import type { SymptomKey } from './data';
 import { version } from '../package.json';
@@ -13,23 +13,99 @@ import carieImg2 from './assets/carie/carie2.jpg';
 import carieImg3 from './assets/carie/carie3.jpg';
 import carieImg4 from './assets/carie/carie4.jpg';
 
+const getTodayDateString = () => new Date().toISOString().split('T')[0];
+
+type MedalCategories = SymptomKey | 'checklist';
+type Medals = Record<MedalCategories, string[]>;
+
+const initialMedals: Medals = {
+  gengivite: [],
+  halitose: [],
+  carie: [],
+  checklist: [],
+};
 const SorrisinhoFelizApp = () => {
-  const [currentScreen, setCurrentScreen] = useState('home');
-  const [checklist, setChecklist] = useState({
-    brushThreeTimes: false,
-    floss: false,
-    fruits: false,
-    vegetables: false,
-    fewSweets: false,
-    water: false,
+  const getScreenFromPath = () => {
+    const path = window.location.pathname.slice(1);
+    // Lista de telas válidas para evitar rotas arbitrárias
+    const validScreens = ['home', 'parents', 'checklist', 'stories', 'about', 'medalHall', ...Object.keys(symptoms).map(k => `symptom-${k}`), ...Object.keys(symptoms).map(k => `brushing-${k}`)];
+    if (validScreens.includes(path)) {
+      return path;
+    }
+    // Se o caminho for vazio ou inválido, retorna para a home
+    return 'home';
+  };
+
+  const [currentScreen, setCurrentScreen] = useState(getScreenFromPath);
+
+  const [checklist, setChecklist] = useState(() => {
+    const today = getTodayDateString();
+    const savedData = localStorage.getItem('sorrisinhoFeliz_dailyData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      if (data.date === today) {
+        return data.checklist;
+      }
+    }
+    return {
+      brushThreeTimes: false,
+      floss: false,
+      fruits: false,
+      vegetables: false,
+      fewSweets: false,
+      water: false,
+    };
   });
-  const [medals, setMedals] = useState(0);
+  const [medalAwardedToday, setMedalAwardedToday] = useState(false);
+  const [medals, setMedals] = useState<Medals>(() => {
+    const savedMedals = localStorage.getItem('sorrisinhoFeliz_medalsByCategory');
+    return savedMedals ? { ...initialMedals, ...JSON.parse(savedMedals) } : initialMedals;
+  });
+
   const [brushingTimer, setBrushingTimer] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [videoModalContent, setVideoModalContent] = useState<{ src: string; title: string } | null>(null);
   const [expandedStories, setExpandedStories] = useState<Set<number>>(new Set());
 
+  useEffect(() => {
+    const today = getTodayDateString();
+    const dataToSave = JSON.stringify({ date: today, checklist });
+    localStorage.setItem('sorrisinhoFeliz_dailyData', dataToSave);
+  }, [checklist]);
+
+  useEffect(() => {
+    localStorage.setItem('sorrisinhoFeliz_medalsByCategory', JSON.stringify(medals));
+  }, [medals]);
+
+  const handleResetData = () => {
+    // eslint-disable-next-line no-alert
+    if (window.confirm('Tem certeza de que deseja apagar todo o seu progresso? Esta ação não pode ser desfeita.')) {
+      localStorage.removeItem('sorrisinhoFeliz_dailyData');
+      localStorage.removeItem('sorrisinhoFeliz_medalsByCategory');
+      window.location.reload();
+    }
+  };
+
+  // Sincroniza a URL com a tela atual
+  useEffect(() => {
+    const path = currentScreen === 'home' ? '/' : `/${currentScreen}`;
+    if (window.location.pathname !== path) {
+      window.history.pushState({ screen: currentScreen }, '', path);
+    }
+  }, [currentScreen]);
+
+  // Ouve os eventos de 'voltar/avançar' do navegador
+  useEffect(() => {
+    const handlePopState = (_event: PopStateEvent) => {
+      setCurrentScreen(getScreenFromPath());
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
   useEffect(() => {
   let interval: number;
   if (isPlaying && brushingTimer > 0) {
@@ -41,6 +117,24 @@ const SorrisinhoFelizApp = () => {
     }
     return () => clearInterval(interval);
   }, [isPlaying, brushingTimer]);
+
+  // Efeito para conceder medalhas dos guias de sintomas
+  useEffect(() => {
+    if (!currentScreen.startsWith('brushing-')) return;
+
+    const symptomKey = currentScreen.replace('brushing-', '') as SymptomKey;
+    const guide = symptoms[symptomKey]?.brushingGuide;
+
+    if (guide && completedSteps.size === guide.length) {
+      const today = getTodayDateString();
+      if (!medals[symptomKey].includes(today)) {
+        setMedals((prev: Medals) => ({
+          ...prev,
+          [symptomKey]: [...prev[symptomKey], today],
+        }));
+      }
+    }
+  }, [completedSteps, currentScreen, medals]);
 
   useEffect(() => {
     if (currentScreen.startsWith('brushing-')) {
@@ -58,8 +152,15 @@ const toggleChecklistItem = (item: ChecklistItem) => {
   setChecklist(newChecklist);
     
     const completed = Object.values(newChecklist).filter(Boolean).length;
-    if (completed === 6 && Object.values(checklist).filter(Boolean).length < 6) {
-      setMedals(prev => prev + 1);
+    const today = getTodayDateString();
+
+    // Garante que a medalha seja concedida apenas uma vez por dia
+    if (completed === 6 && !medals.checklist.includes(today)) {
+      setMedals((prev: Medals) => ({
+        ...prev,
+        checklist: [...prev.checklist, today]
+      }));
+      setMedalAwardedToday(true);
     }
   };
 
@@ -139,6 +240,13 @@ const toggleChecklistItem = (item: ChecklistItem) => {
 
         <div className="flex justify-center space-x-4 mt-8">
           <button
+            onClick={() => setCurrentScreen('medalHall')}
+            className="bg-amber-500 text-white px-4 py-2 rounded-full flex items-center space-x-2"
+          >
+            <Trophy size={16} />
+            <span>Troféus</span>
+          </button>
+          <button
             onClick={() => setCurrentScreen('stories')}
             className="bg-purple-500 text-white px-4 py-2 rounded-full flex items-center space-x-2"
           >
@@ -196,9 +304,9 @@ const toggleChecklistItem = (item: ChecklistItem) => {
   const renderBrushingGuideScreen = (symptomKey: SymptomKey) => {
     const guide = symptoms[symptomKey].brushingGuide;
     const completionMessage = symptoms[symptomKey].completionMessage;
-    const allStepsCompleted = completedSteps.size > 0 && completedSteps.size === guide.length;
+    const allStepsCompleted = completedSteps.size > 0 && completedSteps.size === guide.length; // This line seems correct, no change needed.
     const handleToggleComplete = (index: number) => {
-      setCompletedSteps(prev => {
+      setCompletedSteps((prev: Set<number>) => {
         const newSet = new Set(prev);
         if (newSet.has(index)) newSet.delete(index);
         else newSet.add(index);
@@ -237,30 +345,30 @@ const toggleChecklistItem = (item: ChecklistItem) => {
             {guide.map((step, index) => (
               <div
                 onClick={() => handleToggleComplete(index)}
-                key={index}
+                key={index} // A div externa agora é o container principal do item
                 className={`p-4 rounded-2xl border-2 cursor-pointer transition-all bg-gray-50 border-gray-200 ${completedSteps.has(index) ? 'bg-green-100 border-green-400' : ''}`}
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0 relative">
                     <span className="text-3xl">{step.emoji}</span>
                     {step.step.toLowerCase().includes('fio dental') ? (
-                      <button
+                      <div // Trocado button por div para evitar aninhamento ilegal
                         onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' }); }}
                         className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
                         <HelpCircle size={16} />
-                      </button>
+                      </div>
                     ) : step.step.toLowerCase().includes('escovar os dentinhos') ? (
-                      <button
+                      <div
                         onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: escovacaoVideo, title: 'Como Escovar os Dentinhos?' }); }}
                         className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
                         <HelpCircle size={16} />
-                      </button>
+                      </div>
                     ) : step.step.toLowerCase().includes('língua') || step.step.toLowerCase().includes('línguinha') ? (
-                      <button
+                      <div
                         onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: limparLinguaVideo, title: 'Como Limpar a Língua?' }); }}
                         className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
                         <HelpCircle size={16} />
-                      </button>
+                      </div>
                     ) : (
                       null
                     )}
@@ -301,7 +409,7 @@ const toggleChecklistItem = (item: ChecklistItem) => {
     const completedTasks = Object.values(checklist).filter(Boolean).length;
     const isComplete = completedTasks === 6;
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4">
+      <div className="min-h-screen bg-gradient-to-b from-green-100 to-teal-100 p-4">
         <div className="max-w-md mx-auto">
           <button
             onClick={() => setCurrentScreen('home')}
@@ -312,12 +420,12 @@ const toggleChecklistItem = (item: ChecklistItem) => {
 
           <div className="bg-white rounded-3xl shadow-xl p-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-purple-700 mb-2">Missão Sorriso Brilhante</h2>
+              <h2 className="text-2xl font-bold text-green-700 mb-2">Missão Sorriso Brilhante</h2>
               <div className="text-6xl mb-2">🏆</div>
               <p className="text-gray-600">Checklist para fazer ao final do dia. Você foi muito bem, agora vamos ter uma boa noite do sono.</p>
             </div>
 
-            {isComplete && (
+            {(isComplete || medalAwardedToday) && (
               <div className="bg-gradient-to-r from-yellow-200 to-orange-200 p-6 rounded-2xl mb-6 text-center animate-bounce">
                 <div className="text-6xl mb-2">🎉</div>
                 <h3 className="text-xl font-bold text-orange-700">Parabéns, Campeão!</h3>
@@ -329,57 +437,133 @@ const toggleChecklistItem = (item: ChecklistItem) => {
             )}
 
             <div className="space-y-4 mb-6">
-  {checklistTasks.map((task) => (
-    <button
-      key={task.key}
-      onClick={() => toggleChecklistItem(task.key)}
-      className={`w-full p-4 rounded-2xl border-2 transition-all ${
-        checklist[task.key]
-          ? 'bg-green-100 border-green-400 shadow-lg'
-          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-      }`}
-    >
-      <div className="flex items-center space-x-4">
-        <div className="flex-shrink-0 relative">
-          <span className="text-3xl">{task.emoji}</span>
-          {task.key === 'floss' ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' }); }}
-              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
-              <HelpCircle size={16} />
-            </button>
-          ) : task.key === 'brushThreeTimes' ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: escovacaoVideo, title: 'Como Escovar os Dentinhos?' }); }}
-              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
-              <HelpCircle size={16} />
-            </button>
-          ) : task.label.toLowerCase().includes('língua') ? ( // This is less ideal, but works for the checklist
-            <button
-              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: limparLinguaVideo, title: 'Como Limpar a Língua?' }); }}
-              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
-              <HelpCircle size={16} />
-            </button>
-          ) : (
-            null
-          )}
-        </div>
-        <span className="flex-1 font-bold text-gray-700 text-left">{task.label}</span>
-        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-          checklist[task.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'
-        }`}>
-          {checklist[task.key] && <Check className="text-white" size={20} />}
-        </div>
-      </div>
-    </button>
-  ))}
-</div>
+              {checklistTasks.map((task) => (
+                <button
+                  key={task.key} // O botão já é o container principal
+                  onClick={() => toggleChecklistItem(task.key)}
+                  className={`w-full p-4 rounded-2xl border-2 transition-all ${
+                    checklist[task.key]
+                      ? 'bg-green-100 border-green-400 shadow-lg'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0 relative">
+                      <span className="text-3xl">{task.emoji}</span>
+                      {task.key === 'floss' ? (
+                        <div // Trocado button por div
+                          onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' }); }}
+                          className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                          <HelpCircle size={16} />
+                        </div>
+                      ) : task.key === 'brushThreeTimes' ? (
+                        <div
+                          onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: escovacaoVideo, title: 'Como Escovar os Dentinhos?' }); }}
+                          className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                          <HelpCircle size={16} />
+                        </div>
+                      ) : task.label.toLowerCase().includes('língua') ? ( // This is less ideal, but works for the checklist
+                        <div
+                          onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: limparLinguaVideo, title: 'Como Limpar a Língua?' }); }}
+                          className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                          <HelpCircle size={16} />
+                        </div>
+                      ) : (
+                        null
+                      )}
+                    </div>
+                    <span className="flex-1 font-bold text-gray-700 text-left">{task.label}</span>
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                      checklist[task.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                    }`}>
+                      {checklist[task.key] && <Check className="text-white" size={20} />}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
 
             <div className="bg-blue-100 p-4 rounded-2xl text-center">
               <div className="text-2xl mb-2">🏅</div>
-              <p className="text-blue-700 font-bold">Medalhas conquistadas: {medals}</p>
-              <p className="text-blue-600">Progresso: {completedTasks}/6 tarefas</p>
+              <p className="text-blue-700 font-bold">Total de Medalhas: {medals.checklist.length}</p>
+              <p className="text-blue-600">Progresso de Hoje: {completedTasks}/6 tarefas</p>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMedalHallScreen = () => {
+    const totalMedals = Object.values(medals).reduce((sum, dates: string[]) => sum + dates.length, 0);
+
+    const renderCalendar = (category: MedalCategories) => {
+      const categoryMedals = medals[category];
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const firstDayOfMonth = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const days: (number | null)[] = [
+        ...Array.from({ length: firstDayOfMonth }, () => null),
+        ...Array.from({ length: daysInMonth }, (_, i) => i + 1)
+      ];
+
+      return (
+        <div className="grid grid-cols-7 gap-1 text-center text-sm">
+          {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => <div key={i} className="font-bold text-gray-400">{day}</div>)}
+          {days.map((day, index) => {
+            if (!day) return <div key={`empty-${index}`}></div>;
+            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            const hasMedal = categoryMedals.includes(dateStr);
+            return (
+              <div key={day} className={`p-1 rounded-full flex items-center justify-center ${hasMedal ? 'bg-yellow-300' : 'bg-gray-100'}`}>
+                {hasMedal ? '🏅' : <span className="text-gray-500">{day}</span>}
+              </div>
+            );
+          })}
+        </div>
+      );
+    };
+
+    const categoryDetails = {
+      'checklist': { title: 'Missão Sorriso Brilhante', emoji: '✅' },
+      'gengivite': { title: 'Gengiva Vermelha', emoji: symptoms.gengivite.emoji },
+      'halitose': { title: 'Tchau Bafinho', emoji: symptoms.halitose.emoji },
+      'carie': { title: 'Dentinho com Dodói', emoji: symptoms.carie.emoji },
+    };
+
+    const today = new Date();
+    const monthName = today.toLocaleString('pt-BR', { month: 'long' });
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-yellow-200 to-amber-300 p-4">
+        <div className="max-w-md mx-auto">
+          <button onClick={() => setCurrentScreen('home')} className="mb-4 p-2 bg-white rounded-full shadow-md">
+            <ArrowLeft className="text-yellow-800" size={24} />
+          </button>
+
+          <div className="bg-white rounded-3xl shadow-xl p-6">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-extrabold text-yellow-800 mb-2">Sala de Troféus</h2>
+              <div className="text-6xl my-4">🏆</div>
+              <p className="text-gray-600">Total de medalhas: <strong className="text-2xl text-yellow-700">{totalMedals}</strong></p>
+              <p className="text-sm text-gray-500 mt-2">Calendário de {monthName}</p>
+            </div>
+
+            <div className="space-y-6">
+              {(Object.keys(categoryDetails) as MedalCategories[]).map(key => (
+                <div key={key} className="bg-gray-50 p-4 rounded-xl shadow-sm">
+                  <h3 className="font-bold text-gray-700 mb-2 flex items-center">
+                    <span className="text-2xl mr-2">{categoryDetails[key].emoji}</span> {categoryDetails[key].title} - <strong className="ml-1">{medals[key].length}</strong>
+                  </h3>
+                  {renderCalendar(key)}
+                </div>
+              ))}
+            </div>
+
+            {totalMedals === 0 && <p className="text-center text-gray-500 mt-6">Você ainda não tem medalhas. Complete as missões para começar a colecionar!</p>}
           </div>
         </div>
       </div>
@@ -435,6 +619,16 @@ const toggleChecklistItem = (item: ChecklistItem) => {
 
           <div className="mt-8 text-center text-xs text-gray-400">
             <p>Versão {version}</p>
+          </div>
+
+          <div className="mt-10 pt-6 border-t border-gray-200 text-center">
+            <button
+              onClick={handleResetData}
+              className="inline-flex items-center space-x-2 bg-red-100 text-red-600 px-3 py-1 rounded-full hover:bg-red-200 transition-colors text-xs"
+            >
+              <Trash2 size={14} />
+              <span>Apagar Progresso</span>
+            </button>
           </div>
         </div>
       </div>
@@ -593,6 +787,7 @@ const toggleChecklistItem = (item: ChecklistItem) => {
         if (currentScreen === 'about') return renderAboutScreen();
         if (currentScreen === 'stories') return renderStoriesScreen();
         if (currentScreen === 'parents') return renderParentsScreen();
+        if (currentScreen === 'medalHall') return renderMedalHallScreen();
         return renderHomeScreen();
       })()}
     </>
