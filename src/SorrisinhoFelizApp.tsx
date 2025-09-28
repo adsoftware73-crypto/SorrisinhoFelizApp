@@ -1,22 +1,34 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Pause, Check, Award, Users, Book, Info, Github } from 'lucide-react';
-import { mascotPhrases, symptoms, generalBrushingSteps } from './data';
+import { ArrowLeft, Play, Pause, Check, Award, Users, Book, Info, Github, HelpCircle } from 'lucide-react';
+import { mascotPhrases, symptoms, stories, checklistTasks, authors, orientadores, parentsInfo } from './data';
 import type { SymptomKey } from './data';
 import { version } from '../package.json';
+
+// Importe suas imagens aqui. Substitua pelos nomes corretos dos seus arquivos.
+import fioDentalVideo from './assets/video/fiodental.mp4';
+import escovacaoVideo from './assets/video/esovacao.mp4';
+import limparLinguaVideo from './assets/video/limparlingua.mp4';
+import carieImg1 from './assets/carie/carie1.jpg';
+import carieImg2 from './assets/carie/carie2.jpg';
+import carieImg3 from './assets/carie/carie3.jpg';
+import carieImg4 from './assets/carie/carie4.jpg';
 
 const SorrisinhoFelizApp = () => {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [checklist, setChecklist] = useState({
-    morning: false,
-    lunch: false,
-    night: false,
+    brushThreeTimes: false,
     floss: false,
-    tongue: false
+    fruits: false,
+    vegetables: false,
+    fewSweets: false,
+    water: false,
   });
   const [medals, setMedals] = useState(0);
   const [brushingTimer, setBrushingTimer] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [videoModalContent, setVideoModalContent] = useState<{ src: string; title: string } | null>(null);
+  const [expandedStories, setExpandedStories] = useState<Set<number>>(new Set());
 
   useEffect(() => {
   let interval: number;
@@ -26,10 +38,17 @@ const SorrisinhoFelizApp = () => {
       }, 1000);
     } else if (brushingTimer === 0) {
       setIsPlaying(false);
-      setBrushingTimer(120);
     }
     return () => clearInterval(interval);
   }, [isPlaying, brushingTimer]);
+
+  useEffect(() => {
+    if (currentScreen.startsWith('brushing-')) {
+      setCompletedSteps(new Set());
+      setBrushingTimer(120);
+      setIsPlaying(false);
+    }
+  }, [currentScreen]);
 
 // Defina o tipo com base nas chaves do seu estado do checklist
 type ChecklistItem = keyof typeof checklist;
@@ -39,7 +58,7 @@ const toggleChecklistItem = (item: ChecklistItem) => {
   setChecklist(newChecklist);
     
     const completed = Object.values(newChecklist).filter(Boolean).length;
-    if (completed === 5 && Object.values(checklist).filter(Boolean).length < 5) {
+    if (completed === 6 && Object.values(checklist).filter(Boolean).length < 6) {
       setMedals(prev => prev + 1);
     }
   };
@@ -48,6 +67,18 @@ const toggleChecklistItem = (item: ChecklistItem) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const toggleStory = (index: number) => {
+    setExpandedStories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
   };
 
   const renderMascot = () => (
@@ -72,6 +103,16 @@ const toggleChecklistItem = (item: ChecklistItem) => {
         {renderMascot()}
 
         <div className="space-y-4">
+          <button
+            onClick={() => setCurrentScreen('parents')}
+            className="w-full p-4 bg-gradient-to-r from-blue-200 to-cyan-200 border-2 border-blue-300 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+          >
+            <div className="flex items-center space-x-4">
+              <span className="text-4xl">👨‍👩‍👧‍👦</span>
+              <span className="text-xl font-bold text-gray-700">Informações para os papais</span>
+            </div>
+          </button>
+
           {Object.entries(symptoms).map(([key, symptom]) => (
             <button
               key={key}
@@ -86,16 +127,6 @@ const toggleChecklistItem = (item: ChecklistItem) => {
           ))}
 
           <button
-            onClick={() => setCurrentScreen('tips')}
-            className="w-full p-4 bg-gradient-to-r from-purple-200 to-pink-200 border-2 border-purple-300 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
-          >
-            <div className="flex items-center space-x-4">
-              <span className="text-4xl">⭐</span>
-              <span className="text-xl font-bold text-gray-700">Dicas para Sorrir Sempre</span>
-            </div>
-          </button>
-
-          <button
             onClick={() => setCurrentScreen('checklist')}
             className="w-full p-4 bg-gradient-to-r from-green-200 to-teal-200 border-2 border-green-300 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
           >
@@ -107,13 +138,6 @@ const toggleChecklistItem = (item: ChecklistItem) => {
         </div>
 
         <div className="flex justify-center space-x-4 mt-8">
-          <button
-            onClick={() => setCurrentScreen('parents')}
-            className="bg-blue-500 text-white px-4 py-2 rounded-full flex items-center space-x-2"
-          >
-            <Users size={16} />
-            <span>Pais</span>
-          </button>
           <button
             onClick={() => setCurrentScreen('stories')}
             className="bg-purple-500 text-white px-4 py-2 rounded-full flex items-center space-x-2"
@@ -171,9 +195,19 @@ const toggleChecklistItem = (item: ChecklistItem) => {
 
   const renderBrushingGuideScreen = (symptomKey: SymptomKey) => {
     const guide = symptoms[symptomKey].brushingGuide;
+    const completionMessage = symptoms[symptomKey].completionMessage;
+    const allStepsCompleted = completedSteps.size > 0 && completedSteps.size === guide.length;
+    const handleToggleComplete = (index: number) => {
+      setCompletedSteps(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(index)) newSet.delete(index);
+        else newSet.add(index);
+        return newSet;
+      });
+    };
     const title = `Escovação para ${symptoms[symptomKey].title}`;
     return (
-    <div className="min-h-screen bg-gradient-to-b from-red-100 to-pink-100 p-4"> // Idealmente, as cores seriam dinâmicas
+    <div className="min-h-screen bg-gradient-to-b from-red-100 to-pink-100 p-4">
       <div className="max-w-md mx-auto">
         <button
           onClick={() => setCurrentScreen(`symptom-${symptomKey}`)}
@@ -202,13 +236,35 @@ const toggleChecklistItem = (item: ChecklistItem) => {
           <div className="space-y-4">
             {guide.map((step, index) => (
               <div
+                onClick={() => handleToggleComplete(index)}
                 key={index}
-                className={`p-4 rounded-2xl border-2 ${
-                  currentStep === index ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-50 border-gray-200'
-                } ${currentStep > index ? 'bg-green-100 border-green-400' : ''}`}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all bg-gray-50 border-gray-200 ${completedSteps.has(index) ? 'bg-green-100 border-green-400' : ''}`}
               >
                 <div className="flex items-start space-x-4">
-                  <span className="text-3xl">{step.emoji}</span>
+                  <div className="flex-shrink-0 relative">
+                    <span className="text-3xl">{step.emoji}</span>
+                    {step.step.toLowerCase().includes('fio dental') ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' }); }}
+                        className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                        <HelpCircle size={16} />
+                      </button>
+                    ) : step.step.toLowerCase().includes('escovar os dentinhos') ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: escovacaoVideo, title: 'Como Escovar os Dentinhos?' }); }}
+                        className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                        <HelpCircle size={16} />
+                      </button>
+                    ) : step.step.toLowerCase().includes('língua') || step.step.toLowerCase().includes('línguinha') ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: limparLinguaVideo, title: 'Como Limpar a Língua?' }); }}
+                        className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+                        <HelpCircle size={16} />
+                      </button>
+                    ) : (
+                      null
+                    )}
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-700 mb-1">{step.step}</h3>
                     <p className="text-sm text-gray-600 mb-2">{step.description}</p>
@@ -218,121 +274,32 @@ const toggleChecklistItem = (item: ChecklistItem) => {
                       </div>
                     )}
                   </div>
-                  {currentStep > index && <Check className="text-green-500" size={24} />}
+                  {completedSteps.has(index) && <Check className="text-green-500" size={24} />}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 flex space-x-2">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              className="flex-1 bg-gray-300 text-gray-700 p-3 rounded-xl font-bold"
-              disabled={currentStep === 0}
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => setCurrentStep(Math.min(guide.length - 1, currentStep + 1))}
-              className="flex-1 bg-red-500 text-white p-3 rounded-xl font-bold"
-              disabled={currentStep === guide.length - 1}
-            >
-              Próximo
-            </button>
-          </div>
+          {allStepsCompleted && completionMessage && (
+            <div className="mt-6 bg-gradient-to-r from-yellow-200 to-orange-200 p-6 rounded-2xl text-center animate-bounce">
+              <div className="text-6xl mb-2">🎉</div>
+              <h3 className="text-xl font-bold text-orange-700">Missão Cumprida!</h3>
+              <p className="text-orange-600">{completionMessage}</p>
+              <div className="flex justify-center mt-2">
+                <Award className="text-yellow-500" size={32} />
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
   );
   }
 
-  const renderBrushingScreen = () => (
-    <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-100 p-4">
-      <div className="max-w-md mx-auto">
-        <button
-          onClick={() => setCurrentScreen('tips')}
-          className="mb-4 p-2 bg-white rounded-full shadow-md"
-        >
-          <ArrowLeft className="text-blue-600" size={24} />
-        </button>
-
-        <div className="bg-white rounded-3xl shadow-xl p-6">
-          <h2 className="text-2xl font-bold text-center text-blue-700 mb-6">
-            Escovação Geral! 🦷✨
-          </h2>
-
-          <div className="bg-blue-100 p-4 rounded-2xl mb-6 text-center">
-            <div className="text-4xl mb-2">⏰</div>
-            <div className="text-2xl font-bold text-blue-700">{formatTime(brushingTimer)}</div>
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="mt-2 bg-blue-500 text-white p-2 rounded-full"
-            >
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {generalBrushingSteps.map((step, index) => (
-              <div
-                key={index}
-                className={`p-4 rounded-2xl border-2 ${
-                  currentStep === index ? 'bg-yellow-100 border-yellow-400' : 'bg-gray-50 border-gray-200'
-                } ${currentStep > index ? 'bg-green-100 border-green-400' : ''}`}
-              >
-                <div className="flex items-center space-x-4">
-                  <span className="text-3xl">{step.emoji}</span>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-700">{step.step}</h3>
-                    <p className="text-sm text-gray-600">{step.description}</p>
-                  </div>
-                  {currentStep > index && <Check className="text-green-500" size={24} />}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex space-x-2">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              className="flex-1 bg-gray-300 text-gray-700 p-3 rounded-xl font-bold"
-              disabled={currentStep === 0}
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => setCurrentStep(Math.min(generalBrushingSteps.length - 1, currentStep + 1))}
-              className="flex-1 bg-blue-500 text-white p-3 rounded-xl font-bold"
-              disabled={currentStep === generalBrushingSteps.length - 1}
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderChecklistScreen = () => {
     const completedTasks = Object.values(checklist).filter(Boolean).length;
-    const isComplete = completedTasks === 5;
-// ▼▼▼ ADICIONE ESTE BLOCO DE CÓDIGO NOVO AQUI ▼▼▼
-// 1. Definimos a "etiqueta" para cada tarefa
-interface ChecklistTask {
-  key: ChecklistItem; // Usando o tipo que já tínhamos
-  label: string;
-  emoji: string;
-}
-
-// 2. Criamos a nossa lista "etiquetada" de tarefas
-const tasks: ChecklistTask[] = [
-  { key: 'morning', label: 'Escovei de manhã', emoji: '🌅' },
-  { key: 'lunch', label: 'Escovei depois do almoço', emoji: '🍽️' },
-  { key: 'night', label: 'Escovei antes de dormir', emoji: '🌙' },
-  { key: 'floss', label: 'Usei fio dental', emoji: '🧵' },
-  { key: 'tongue', label: 'Escovei a língua', emoji: '👅' }
-];
-// ▲▲▲ FIM DO BLOCO NOVO ▲▲▲
+    const isComplete = completedTasks === 6;
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4">
         <div className="max-w-md mx-auto">
@@ -347,7 +314,7 @@ const tasks: ChecklistTask[] = [
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-purple-700 mb-2">Missão Sorriso Brilhante</h2>
               <div className="text-6xl mb-2">🏆</div>
-              <p className="text-gray-600">Complete todas as tarefas do dia!</p>
+              <p className="text-gray-600">Checklist para fazer ao final do dia. Você foi muito bem, agora vamos ter uma boa noite do sono.</p>
             </div>
 
             {isComplete && (
@@ -362,7 +329,7 @@ const tasks: ChecklistTask[] = [
             )}
 
             <div className="space-y-4 mb-6">
-  {tasks.map((task) => ( // <-- A única mudança real é aqui!
+  {checklistTasks.map((task) => (
     <button
       key={task.key}
       onClick={() => toggleChecklistItem(task.key)}
@@ -373,7 +340,30 @@ const tasks: ChecklistTask[] = [
       }`}
     >
       <div className="flex items-center space-x-4">
-        <span className="text-3xl">{task.emoji}</span>
+        <div className="flex-shrink-0 relative">
+          <span className="text-3xl">{task.emoji}</span>
+          {task.key === 'floss' ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' }); }}
+              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+              <HelpCircle size={16} />
+            </button>
+          ) : task.key === 'brushThreeTimes' ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: escovacaoVideo, title: 'Como Escovar os Dentinhos?' }); }}
+              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+              <HelpCircle size={16} />
+            </button>
+          ) : task.label.toLowerCase().includes('língua') ? ( // This is less ideal, but works for the checklist
+            <button
+              onClick={(e) => { e.stopPropagation(); setVideoModalContent({ src: limparLinguaVideo, title: 'Como Limpar a Língua?' }); }}
+              className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-0.5">
+              <HelpCircle size={16} />
+            </button>
+          ) : (
+            null
+          )}
+        </div>
         <span className="flex-1 font-bold text-gray-700 text-left">{task.label}</span>
         <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
           checklist[task.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'
@@ -388,7 +378,7 @@ const tasks: ChecklistTask[] = [
             <div className="bg-blue-100 p-4 rounded-2xl text-center">
               <div className="text-2xl mb-2">🏅</div>
               <p className="text-blue-700 font-bold">Medalhas conquistadas: {medals}</p>
-              <p className="text-blue-600">Progresso: {completedTasks}/5 tarefas</p>
+              <p className="text-blue-600">Progresso: {completedTasks}/6 tarefas</p>
             </div>
           </div>
         </div>
@@ -418,13 +408,19 @@ const tasks: ChecklistTask[] = [
           <div className="bg-blue-50 p-4 rounded-2xl mb-6">
             <h3 className="font-bold text-blue-800 mb-3 text-lg text-center">Desenvolvido por</h3>
             <div className="space-y-2 text-center text-blue-700">
-              <p>Nome do Autor 1</p>
-              <p>Nome do Autor 2</p>
-              <p>Nome do Autor 3</p>
-              {/* Adicione mais autores conforme necessário */}
+              {authors.map((author, index) => (
+                <p key={index}>{author}</p>
+              ))}
             </div>
           </div>
-
+          <div className="bg-blue-50 p-4 rounded-2xl mb-6">
+            <h3 className="font-bold text-blue-800 mb-3 text-lg text-center">Desenvolvido sobre a orientação dos discentes:</h3>
+            <div className="space-y-2 text-center text-blue-700">
+              {orientadores.map((author, index) => (
+                <p key={index}>{author}</p>
+              ))}
+            </div>
+          </div>
           <div className="text-center">
             <a
               href="https://github.com/adsoftware73-crypto/SorrisinhoFelizApp"
@@ -439,51 +435,6 @@ const tasks: ChecklistTask[] = [
 
           <div className="mt-8 text-center text-xs text-gray-400">
             <p>Versão {version}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderTipsScreen = () => (
-    <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-100 p-4">
-      <div className="max-w-md mx-auto">
-        <button
-          onClick={() => setCurrentScreen('home')}
-          className="mb-4 p-2 bg-white rounded-full shadow-md"
-        >
-          <ArrowLeft className="text-blue-600" size={24} />
-        </button>
-
-        <div className="bg-white rounded-3xl shadow-xl p-6">
-          <h2 className="text-2xl font-bold text-center text-green-700 mb-6">
-            Dicas para Sorrir Sempre! ⭐
-          </h2>
-
-          <div className="space-y-4">
-            {[
-              { emoji: '🦷', title: 'Escove 3 vezes ao dia', desc: 'Manhã, depois do almoço e antes de dormir!' },
-              { emoji: '🧵', title: 'Use fio dental', desc: 'Limpe entre os dentinhos com ajuda de um adulto!' },
-              { emoji: '🍎', title: 'Coma frutas', desc: 'Frutas fazem bem para os dentes e são gostosas!' },
-              { emoji: '🚫🍭', title: 'Menos doces', desc: 'Doces podem fazer mal para os dentes!' },
-              { emoji: '💧', title: 'Beba água', desc: 'Água ajuda a limpar a boca!' },
-              { emoji: '😴', title: 'Durma bem', desc: 'O sono ajuda o corpo a se cuidar!' }
-            ].map((tip, index) => (
-              <div key={index} className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-2xl border border-blue-200">
-                <div className="flex items-start space-x-4">
-                  <span className="text-3xl">{tip.emoji}</span>
-                  <div>
-                    <h3 className="font-bold text-gray-700 mb-1">{tip.title}</h3>
-                    <p className="text-gray-600 text-sm">{tip.desc}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 text-center">
-            <div className="text-6xl mb-4">🌟</div>
-            <p className="text-blue-700 font-bold">Lembre-se: Um sorriso brilhante é um sorriso saudável!</p>
           </div>
         </div>
       </div>
@@ -505,39 +456,67 @@ const tasks: ChecklistTask[] = [
             Informações para os Pais 👨‍👩‍👧‍👦
           </h2>
 
-          <div className="space-y-4">
-            <div className="bg-red-50 p-4 rounded-2xl border border-red-200">
-              <h3 className="font-bold text-red-700 mb-2">🦷 Gengivite</h3>
-              <p className="text-sm text-gray-700 mb-2">Inflamação das gengivas causada por acúmulo de placa bacteriana.</p>
-              <p className="text-xs text-red-600 font-medium">Consulte o dentista se: gengiva sangra frequentemente ou há inchaço persistente.</p>
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
-              <h3 className="font-bold text-blue-700 mb-2">💨 Halitose</h3>
-              <p className="text-sm text-gray-700 mb-2">Mau hálito pode indicar problemas de higiene ou outras condições.</p>
-              <p className="text-xs text-blue-600 font-medium">Consulte o dentista se: persiste mesmo com boa higiene.</p>
-            </div>
-
-            <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-200">
-              <h3 className="font-bold text-yellow-700 mb-2">🍬 Cárie</h3>
-              <p className="text-sm text-gray-700 mb-2">Destruição do tecido dentário por bactérias e açúcar.</p>
-              <p className="text-xs text-yellow-600 font-medium">Consulte o dentista se: há manchas escuras ou dor nos dentes.</p>
-            </div>
-          </div>
-
-          <div className="mt-6 bg-green-50 p-4 rounded-2xl border border-green-200">
-            <h3 className="font-bold text-green-700 mb-2">📅 Recomendações Gerais</h3>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>• Primeira consulta aos 6 meses ou com o primeiro dente</li>
-              <li>• Consultas de rotina a cada 6 meses</li>
-              <li>• Supervisionar escovação até os 8-10 anos</li>
-              <li>• Usar pasta com flúor (quantidade adequada à idade)</li>
-            </ul>
+          <div className="space-y-6">  
+            {parentsInfo.map(info => (
+              <div key={info.title} className={`bg-${info.color}-50 p-4 rounded-2xl border border-${info.color}-200`}>
+                <h3 className={`font-bold text-${info.color}-700 mb-2`}>{info.emoji} {info.title}</h3>
+                {info.description && <p className="text-sm text-gray-700 mb-2">{info.description}</p>}
+                {info.subTitle && <h4 className="font-semibold text-gray-800 mt-2 mb-1">{info.subTitle}</h4>}
+                <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
+                  {info.points.map((point, index) => {
+                    const hasFioDental = point.toLowerCase().includes('fio dental');
+                    return (
+                      <li key={index} className={hasFioDental ? 'flex items-center' : ''}>
+                        <span dangerouslySetInnerHTML={{ __html: point }} />
+                        {hasFioDental && (
+                          <button
+                            onClick={() => setVideoModalContent({ src: fioDentalVideo, title: 'Como usar o Fio Dental?' })}
+                            className="ml-2 bg-blue-500 text-white rounded-full p-0.5 flex-shrink-0"
+                          >
+                            <HelpCircle size={16} />
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {info.title === 'Cárie' && (
+                  <>
+                    <p className="text-sm text-gray-700 mt-4 mb-2">Fotos representando diversos estados da Cárie:</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <img src={carieImg1} alt="Exemplo de cárie dentária" className="rounded-lg shadow-md w-full h-auto object-cover" />
+                      <img src={carieImg2} alt="Dente com cárie" className="rounded-lg shadow-md w-full h-auto object-cover" />
+                      <img src={carieImg3} alt="Ilustração de cárie" className="rounded-lg shadow-md w-full h-auto object-cover" />
+                      <img src={carieImg4} alt="Outro exemplo de cárie" className="rounded-lg shadow-md w-full h-auto object-cover" />
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   );
+
+  const renderVideoModal = () => {
+    if (!videoModalContent) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setVideoModalContent(null)}>
+        <div className="bg-white p-4 rounded-2xl shadow-xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-blue-700 mb-2 text-center">{videoModalContent.title}</h3>
+          <video src={videoModalContent.src} controls autoPlay className="w-full rounded-md mb-4"></video>
+          <button
+            onClick={() => setVideoModalContent(null)}
+            className="w-full bg-red-500 text-white p-3 rounded-xl font-bold"
+          >
+            Fechar Vídeo
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const renderStoriesScreen = () => (
     <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4">
@@ -550,46 +529,41 @@ const tasks: ChecklistTask[] = [
         </button>
 
         <div className="bg-white rounded-3xl shadow-xl p-6">
-          <h2 className="text-2xl font-bold text-center text-purple-700 mb-6">
+          <h2 className="text-3xl font-extrabold text-center text-indigo-800 mb-8 pb-4 border-b-2 border-indigo-200">
             Histórias do Dentinho 📚
           </h2>
 
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-2xl border border-blue-200">
-              <div className="text-4xl text-center mb-2">🦷⚔️🦠</div>
-              <h3 className="font-bold text-blue-700 mb-2">O Dentinho Corajoso vs. Placa Bacteriana</h3>
-              <p className="text-sm text-gray-700">
-                Era uma vez um dentinho muito corajoso que vivia na boca da Maria. Um dia, 
-                o vilão Placa Bacteriana apareceu para causar problemas! Mas o dentinho não estava sozinho...
-              </p>
-              <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm">
-                Ler História Completa
-              </button>
-            </div>
+            {stories.map((story, index) => {
+              const isExpanded = expandedStories.has(index);
 
-            <div className="bg-gradient-to-r from-green-50 to-yellow-50 p-4 rounded-2xl border border-green-200">
-              <div className="text-4xl text-center mb-2">🦷🎭✨</div>
-              <h3 className="font-bold text-green-700 mb-2">A Festa dos Dentes Limpos</h3>
-              <p className="text-sm text-gray-700">
-                Todos os dentes da boca do João estavam se preparando para a grande festa! 
-                Mas só poderiam participar os dentes bem limpinhos e brilhantes...
-              </p>
-              <button className="mt-2 bg-green-500 text-white px-4 py-2 rounded-full text-sm">
-                Ler História Completa
-              </button>
-            </div>
+              return (
+                <div key={index} className="bg-white p-6 rounded-2xl shadow-md transition-all">
+                  <button onClick={() => toggleStory(index)} className="w-full text-left">
+                    <h3 className="text-2xl font-bold text-purple-700 mb-2 text-center">
+                      {story.title} {story.emoji}
+                    </h3>
+                  </button>
 
-            <div className="bg-gradient-to-r from-pink-50 to-red-50 p-4 rounded-2xl border border-pink-200">
-              <div className="text-4xl text-center mb-2">🦷👑💎</div>
-              <h3 className="font-bold text-pink-700 mb-2">A Princesa Escova e o Príncipe Fio Dental</h3>
-              <p className="text-sm text-gray-700">
-                No reino da Boca Saudável, viviam a Princesa Escova e o Príncipe Fio Dental. 
-                Juntos, eles protegiam todos os habitantes dos ataques do Rei Açúcar...
-              </p>
-              <button className="mt-2 bg-pink-500 text-white px-4 py-2 rounded-full text-sm">
-                Ler História Completa
-              </button>
-            </div>
+                  {isExpanded && (
+                    <>
+                      <div className="mt-4 text-gray-700 space-y-4 whitespace-pre-line">
+                        {story.body.split('\n\n').map((paragraph, pIndex) => (
+                          <p key={pIndex} className="text-base leading-relaxed">
+                            {paragraph}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="mt-4 pt-4 border-t-2 border-purple-100">
+                        <p className="text-purple-800 font-semibold italic text-center">
+                          <strong>Moral da história:</strong> {story.moral}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="mt-6 text-center">
@@ -602,25 +576,27 @@ const tasks: ChecklistTask[] = [
   );
 
   // Screen routing
-  if (currentScreen === 'home') return renderHomeScreen();
-if (currentScreen.startsWith('symptom-')) {
-  // Usamos "as SymptomKey" para garantir o tipo correto
-  const symptomKey = currentScreen.replace('symptom-', '') as SymptomKey;
-  return renderSymptomScreen(symptomKey);
-}
-if (currentScreen.startsWith('brushing-')) {
-  const symptomKey = currentScreen.replace('brushing-', '') as SymptomKey;
-  return renderBrushingGuideScreen(symptomKey);
-}
-
-  if (currentScreen === 'brushing') return renderBrushingScreen();
-  if (currentScreen === 'checklist') return renderChecklistScreen();
-  if (currentScreen === 'tips') return renderTipsScreen();
-  if (currentScreen === 'parents') return renderParentsScreen();
-  if (currentScreen === 'stories') return renderStoriesScreen();
-  if (currentScreen === 'about') return renderAboutScreen();
-
-  return renderHomeScreen();
+  return (
+    <>
+      {renderVideoModal()}
+      {(() => {
+        if (currentScreen === 'home') return renderHomeScreen();
+        if (currentScreen.startsWith('symptom-')) {
+          const symptomKey = currentScreen.replace('symptom-', '') as SymptomKey;
+          return renderSymptomScreen(symptomKey);
+        }
+        if (currentScreen.startsWith('brushing-')) {
+          const symptomKey = currentScreen.replace('brushing-', '') as SymptomKey;
+          return renderBrushingGuideScreen(symptomKey);
+        }
+        if (currentScreen === 'checklist') return renderChecklistScreen();
+        if (currentScreen === 'about') return renderAboutScreen();
+        if (currentScreen === 'stories') return renderStoriesScreen();
+        if (currentScreen === 'parents') return renderParentsScreen();
+        return renderHomeScreen();
+      })()}
+    </>
+  );
 };
 
 export default SorrisinhoFelizApp;
