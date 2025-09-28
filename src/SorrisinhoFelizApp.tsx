@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Pause, Check, Award, Users, Book, Info, Github, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Check, Award, Book, Info, Github, HelpCircle } from 'lucide-react';
 import { mascotPhrases, symptoms, stories, checklistTasks, authors, orientadores, parentsInfo } from './data';
 import type { SymptomKey } from './data';
 import { version } from '../package.json';
