@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vitejs.dev/config/
@@ -9,10 +9,6 @@ export default defineConfig({
     react(),
     basicSsl(),
     VitePWA({
-      registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true // Habilita o PWA em modo de desenvolvimento
-      },
       manifest: {
         name: 'Sorrisinho Feliz',
         short_name: 'Sorrisinho',
@@ -36,10 +32,10 @@ export default defineConfig({
           },
         ],
       },
+      registerType: 'autoUpdate',
     }),
   ],
   server: {
-    https: true,
     host: true,
   },
 })

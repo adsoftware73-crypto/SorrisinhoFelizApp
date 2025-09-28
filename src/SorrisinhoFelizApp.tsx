@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Pause, Check, Award, Users, Book } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Check, Award, Users, Book, Info, Github } from 'lucide-react';
 import { mascotPhrases, symptoms, generalBrushingSteps } from './data';
 import type { SymptomKey } from './data';
+import { version } from '../package.json';
 
 const SorrisinhoFelizApp = () => {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -119,6 +120,13 @@ const toggleChecklistItem = (item: ChecklistItem) => {
           >
             <Book size={16} />
             <span>Histórias</span>
+          </button>
+          <button
+            onClick={() => setCurrentScreen('about')}
+            className="bg-gray-500 text-white px-4 py-2 rounded-full flex items-center space-x-2"
+          >
+            <Info size={16} />
+            <span>Sobre</span>
           </button>
         </div>
       </div>
@@ -388,6 +396,55 @@ const tasks: ChecklistTask[] = [
     );
   };
 
+  const renderAboutScreen = () => (
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-blue-100 p-4">
+      <div className="max-w-md mx-auto">
+        <button
+          onClick={() => setCurrentScreen('home')}
+          className="mb-4 p-2 bg-white rounded-full shadow-md"
+        >
+          <ArrowLeft className="text-blue-600" size={24} />
+        </button>
+
+        <div className="bg-white rounded-3xl shadow-xl p-6">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Sobre o Sorrisinho Feliz</h2>
+            <div className="text-6xl mb-2">😊</div>
+            <p className="text-gray-600">
+              Este aplicativo é um projeto acadêmico criado com o objetivo de ensinar crianças sobre saúde bucal de forma divertida e interativa.
+            </p>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-2xl mb-6">
+            <h3 className="font-bold text-blue-800 mb-3 text-lg text-center">Desenvolvido por</h3>
+            <div className="space-y-2 text-center text-blue-700">
+              <p>Nome do Autor 1</p>
+              <p>Nome do Autor 2</p>
+              <p>Nome do Autor 3</p>
+              {/* Adicione mais autores conforme necessário */}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <a
+              href="https://github.com/adsoftware73-crypto/SorrisinhoFelizApp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <Github size={20} />
+              <span>Ver o código no GitHub</span>
+            </a>
+          </div>
+
+          <div className="mt-8 text-center text-xs text-gray-400">
+            <p>Versão {version}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderTipsScreen = () => (
     <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-100 p-4">
       <div className="max-w-md mx-auto">
@@ -561,6 +618,7 @@ if (currentScreen.startsWith('brushing-')) {
   if (currentScreen === 'tips') return renderTipsScreen();
   if (currentScreen === 'parents') return renderParentsScreen();
   if (currentScreen === 'stories') return renderStoriesScreen();
+  if (currentScreen === 'about') return renderAboutScreen();
 
   return renderHomeScreen();
 };

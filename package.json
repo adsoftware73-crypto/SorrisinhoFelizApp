@@ -1,10 +1,11 @@
 {
   "name": "sorrisinho-feliz-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --force",
+    "dev": "vite",
+    "dev:httpss": "vite --https",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

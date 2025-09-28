@@ -1,6 +1,7 @@
 # ✨ Sorrisinho Feliz ✨
 
 ![App Screenshot](tela.png)
+*Coloque aqui um print da tela principal do seu aplicativo.*
 
 ## 📖 Sobre o Projeto
 
@@ -14,6 +15,7 @@
 * **Checklist de Missões:** Um sistema de gamificação ("Missão Sorriso Brilhante") onde a criança marca tarefas diárias de higiene e ganha medalhas.
 * **Dicas e Histórias:** Seções com dicas rápidas para manter o sorriso saudável e histórias infantis sobre o tema.
 * **Área para os Pais:** Uma seção com informações mais técnicas sobre cada condição, ajudando os pais a entenderem os problemas e quando procurar um dentista.
+* **PWA (Progressive Web App):** Pode ser instalado em dispositivos móveis como um aplicativo nativo.
 * **Design Lúdico e Amigável:** Interface colorida, com emojis e uma linguagem simples para engajar o público infantil.
 
 ---
@@ -27,6 +29,7 @@ Este projeto foi construído com tecnologias modernas de desenvolvimento front-e
 * **[TypeScript](https://www.typescriptlang.org/)**: Superset do JavaScript que adiciona tipagem estática.
 * **[Tailwind CSS](https://tailwindcss.com/)**: Framework CSS utility-first para estilização rápida e responsiva.
 * **[Lucide React](https://lucide.dev/)**: Biblioteca de ícones SVG.
+* **[Vite PWA](https://vite-pwa-org.netlify.app/)**: Plugin para transformar o site em um Progressive Web App.
 
 ---
 
@@ -36,7 +39,7 @@ Para rodar o projeto na sua máquina, siga os passos abaixo:
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/seu-usuario/sorrisinho-feliz-app.git](https://github.com/seu-usuario/sorrisinho-feliz-app.git)
+    git clone https://github.com/adsoftware73-crypto/SorrisinhoFelizApp.git
     ```
 
 2.  **Acesse a pasta do projeto:**
@@ -55,4 +58,3 @@ Para rodar o projeto na sua máquina, siga os passos abaixo:
     ```
 
 5.  Abra [http://localhost:5173](http://localhost:5173) no seu navegador para ver o aplicativo.
-
