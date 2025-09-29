@@ -1,10 +1,18 @@
 # ✨ Sorrisinho Feliz ✨
 
-![App Screenshot](src/assets/tela.png)
+<p align="center"><img src="src/assets/tela.png" width="350"></p>
+
+## 🚀 Deploy
+
+Acesse a versão de produção do aplicativo através do link:
+
+**[sorrisinhofeliz.vercel.app](https://sorrisinhofeliz.vercel.app/)**
+
+---
 
 ## 📖 Sobre o Projeto
 
-**Sorrisinho Feliz** é um aplicativo web educacional e interativo, desenvolvido como um projeto de faculdade, com o objetivo de ensinar crianças sobre a importância da saúde bucal de uma forma lúdica e divertida. O aplicativo aborda sintomas comuns como gengivite, halitose e cáries, oferecendo guias de escovação passo a passo e um robusto sistema de gamificação para engajar os pequenos.
+**Sorrisinho Feliz** é um aplicativo web educacional e interativo, desenvolvido como um projeto acadêmico, com o objetivo de ensinar crianças sobre a importância da saúde bucal de uma forma lúdica e divertida. O aplicativo aborda sintomas comuns como gengivite, halitose e cáries, oferecendo guias de escovação passo a passo e um robusto sistema de gamificação para engajar os pequenos.
 
 ---
 
@@ -13,13 +21,41 @@
 * **Guias de Escovação Interativos:** Tutoriais passo a passo e com cronômetro para diferentes necessidades (Gengivite, Halitose, Cárie).
 * **Sistema de Gamificação e Recompensas:** A "Missão Sorriso Brilhante" incentiva a conclusão de tarefas diárias de higiene. Medalhas são concedidas por categoria e podem ser visualizadas em uma "Sala de Troféus" com calendários de conquista.
 * **Histórias Desbloqueáveis:** Histórias infantis sobre saúde bucal são liberadas conforme a criança conquista mais medalhas, incentivando o progresso contínuo.
-* **Área para os Pais:** Uma seção com informações mais técnicas sobre cada condição, ajudando os pais a entenderem os problemas e quando procurar um dentista.
+* **Área para os Pais:** Uma seção com informações técnicas sobre cada condição, ajudando os pais a entenderem os problemas e quando procurar um dentista.
 * **PWA (Progressive Web App):** Pode ser instalado em dispositivos móveis como um aplicativo nativo.
 * **Design Lúdico e Amigável:** Interface colorida, com emojis e uma linguagem simples para engajar o público infantil.
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## � Estrutura do Projeto
+
+O projeto é organizado com uma estrutura clara para facilitar a manutenção e o desenvolvimento de novas funcionalidades.
+
+```
+/
+├── src/
+│   ├── assets/         # Imagens, vídeos e outros arquivos estáticos
+│   ├── components/     # Componentes React que representam cada tela da aplicação:
+│   │   ├── AboutScreen.tsx         - Tela "Sobre", com informações do projeto e autores.
+│   │   ├── BrushingGuideScreen.tsx - Guia de escovação interativo para um sintoma.
+│   │   ├── ChecklistScreen.tsx     - Tela da "Missão Sorriso Brilhante" (checklist).
+│   │   ├── HomeScreen.tsx          - Tela inicial do aplicativo.
+│   │   ├── MedalHallScreen.tsx     - "Sala de Troféus" que exibe as medalhas.
+│   │   ├── ParentsScreen.tsx       - Tela com informações detalhadas para os pais.
+│   │   ├── StoriesScreen.tsx       - Tela de historinhas desbloqueáveis.
+│   │   ├── SymptomScreen.tsx       - Tela que descreve um sintoma (cárie, etc.).
+│   │   └── VideoModal.tsx          - Modal para exibir vídeos tutoriais.
+│   ├── App.tsx         # Componente principal que gerencia o estado e a navegação
+│   ├── data.ts         # Dados estáticos (textos, sintomas, missões, etc.)
+│   └── main.tsx        # Ponto de entrada da aplicação React
+├── public/             # Arquivos públicos que são copiados para a build
+├── package.json
+└── vite.config.ts
+```
+
+---
+
+## �🛠️ Tecnologias Utilizadas
 
 Este projeto foi construído com tecnologias modernas de desenvolvimento front-end:
 
@@ -62,7 +98,7 @@ Para rodar o projeto na sua máquina, siga os passos abaixo:
 
 ## 👥 Autores e Orientadores
 
-Este projeto foi desenvolvido com a dedicação dos seguintes alunos:
+Este projeto foi desenvolvido com a dedicação dos seguintes discentes:
 
 *   Anita Beatriz Barbosa Santos
 *   Francisco Antônio Santana de Melo
@@ -71,7 +107,7 @@ Este projeto foi desenvolvido com a dedicação dos seguintes alunos:
 *   Letícia Thicyanne Melo Godoy Sousa
 *   Marina Gomes da Silva
 
-Sob a orientação das discentes:
+Sob a orientação das docentes:
 
 *   Emily Feitosa Rêgo
 *   Isabelly Eduarda Avelino
