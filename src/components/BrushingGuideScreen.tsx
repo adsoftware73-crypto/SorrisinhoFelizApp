@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ArrowLeft, Play, Pause, Check, Award, HelpCircle } from 'lucide-react';
 import { symptoms } from '../data';
 import type { SymptomKey } from '../data';
@@ -17,8 +17,8 @@ interface BrushingGuideScreenProps {
   setBrushingTimer: React.Dispatch<React.SetStateAction<number>>;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
-  completedSteps: Set<number>;
-  setCompletedSteps: React.Dispatch<React.SetStateAction<Set<number>>>;
+  completedSteps: Map<SymptomKey, Set<number>>;
+  setCompletedSteps: React.Dispatch<React.SetStateAction<Map<SymptomKey, Set<number>>>>;
   setVideoModalContent: (content: { src: string; title: string } | null) => void;
 }
 
@@ -43,7 +43,10 @@ export const BrushingGuideScreen = ({
 }: BrushingGuideScreenProps) => {
   const guide = symptoms[symptomKey].brushingGuide;
   const completionMessage = symptoms[symptomKey].completionMessage;
-  const allStepsCompleted = completedSteps.size > 0 && completedSteps.size === guide.length;
+
+  const currentSymptomCompletedSteps = useMemo(() => completedSteps.get(symptomKey) ?? new Set<number>(), [completedSteps, symptomKey]);
+
+  const allStepsCompleted = currentSymptomCompletedSteps.size > 0 && currentSymptomCompletedSteps.size === guide.length;
 
   useEffect(() => {
     let interval: number;
@@ -70,11 +73,16 @@ export const BrushingGuideScreen = ({
   }, [allStepsCompleted, symptomKey, medals, setMedals]);
 
   const handleToggleComplete = (index: number) => {
-    setCompletedSteps(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) newSet.delete(index);
-      else newSet.add(index);
-      return newSet;
+    setCompletedSteps(prevMap => {
+      const newMap = new Map(prevMap);
+      const steps = new Set(newMap.get(symptomKey) ?? []);
+      if (steps.has(index)) {
+        steps.delete(index);
+      } else {
+        steps.add(index);
+      }
+      newMap.set(symptomKey, steps);
+      return newMap;
     });
   };
 
@@ -112,7 +120,7 @@ export const BrushingGuideScreen = ({
               <div
                 onClick={() => handleToggleComplete(index)}
                 key={index}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all bg-gray-50 border-gray-200 ${completedSteps.has(index) ? 'bg-green-100 border-green-400' : ''}`}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all bg-gray-50 border-gray-200 ${currentSymptomCompletedSteps.has(index) ? 'bg-green-100 border-green-400' : ''}`}
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0 relative">
@@ -130,7 +138,7 @@ export const BrushingGuideScreen = ({
                     <p className="text-sm text-gray-600 mb-2">{step.description}</p>
                     {step.detail && <div className="bg-blue-50 p-2 rounded-lg"><p className="text-xs text-blue-700 font-medium">{step.detail}</p></div>}
                   </div>
-                  {completedSteps.has(index) && <Check className="text-green-500" size={24} />}
+                  {currentSymptomCompletedSteps.has(index) && <Check className="text-green-500" size={24} />}
                 </div>
               </div>
             ))}

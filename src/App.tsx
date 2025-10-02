@@ -58,6 +58,20 @@ const App = () => {
       water: false,
     };
   });
+
+  const [brushingSteps, setBrushingSteps] = useState(() => {
+    const today = getTodayDateString();
+    const savedData = localStorage.getItem('sorrisinhoFeliz_brushingData');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      if (data.date === today) {
+        // O Set precisa ser reconstruído a partir do array salvo
+        return new Map<SymptomKey, Set<number>>(Object.entries(data.steps).map(([key, value]) => [key as SymptomKey, new Set(value as number[])]));
+      }
+    }
+    return new Map<SymptomKey, Set<number>>();
+  });
+
   const [medalAwardedToday, setMedalAwardedToday] = useState(false);
   const [medals, setMedals] = useState<Medals>(() => {
     const savedMedals = localStorage.getItem('sorrisinhoFeliz_medalsByCategory');
@@ -67,7 +81,6 @@ const App = () => {
   // State for BrushingGuideScreen
   const [brushingTimer, setBrushingTimer] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const [videoModalContent, setVideoModalContent] = useState<{ src: string; title: string } | null>(null);
 
@@ -76,6 +89,12 @@ const App = () => {
     const dataToSave = JSON.stringify({ date: today, checklist });
     localStorage.setItem('sorrisinhoFeliz_dailyData', dataToSave);
   }, [checklist]);
+
+  useEffect(() => {
+    const today = getTodayDateString();
+    const dataToSave = JSON.stringify({ date: today, steps: Object.fromEntries(Array.from(brushingSteps.entries()).map(([key, value]) => [key, [...value]])) });
+    localStorage.setItem('sorrisinhoFeliz_brushingData', dataToSave);
+  }, [brushingSteps]);
 
   useEffect(() => {
     localStorage.setItem('sorrisinhoFeliz_medalsByCategory', JSON.stringify(medals));
@@ -114,7 +133,6 @@ const App = () => {
 
   useEffect(() => {
     if (currentScreen.startsWith('escovacao-')) {
-      setCompletedSteps(new Set());
       setBrushingTimer(120);
       setIsPlaying(false);
     }
@@ -150,16 +168,16 @@ const App = () => {
         if (currentScreen.startsWith('escovacao-')) {
           const symptomKey = currentScreen.replace('escovacao-', '') as SymptomKey;
           return <BrushingGuideScreen
-            symptomKey={symptomKey}
+            symptomKey={symptomKey}            
             onNavigate={navigate}
             medals={medals}
             setMedals={setMedals}
             brushingTimer={brushingTimer}
-            setBrushingTimer={setBrushingTimer}
+            setBrushingTimer={setBrushingTimer}            
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
-            completedSteps={completedSteps}
-            setCompletedSteps={setCompletedSteps}
+            completedSteps={brushingSteps}
+            setCompletedSteps={setBrushingSteps}
             setVideoModalContent={setVideoModalContent}
           />;
         }
