@@ -257,8 +257,8 @@ export const authors = [
   // Adicione mais autores conforme necessário
 ];
 export const orientadores = [
-"Isabelly Eduarda Avelino",
-"Emily Feitosa Rêgo"
+"Isabelly Eduarda Avelino CRO AL-5278",
+"Emily Feitosa Rêgo CRO AL-4334"
   // Adicione mais autores conforme necessário
 ];
 
